@@ -19,7 +19,7 @@ public class JacksonConfig {
         // Register Hibernate6Module to handle lazy loading
         Hibernate6Module hibernateModule = new Hibernate6Module();
         hibernateModule.disable(Hibernate6Module.Feature.USE_TRANSIENT_ANNOTATION);
-        hibernateModule.enable(Hibernate6Module.Feature.FORCE_LAZY_LOADING);
+        hibernateModule.disable(Hibernate6Module.Feature.FORCE_LAZY_LOADING);
         hibernateModule.enable(Hibernate6Module.Feature.SERIALIZE_IDENTIFIER_FOR_LAZY_NOT_LOADED_OBJECTS);
         
         mapper.registerModule(hibernateModule);

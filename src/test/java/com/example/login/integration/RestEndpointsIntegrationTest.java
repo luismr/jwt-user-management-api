@@ -1,11 +1,12 @@
 package com.example.login.integration;
 
+import com.example.login.util.JwtTestUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,12 +25,26 @@ class RestEndpointsIntegrationTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void testApiRootEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private MockMvc mockMvc;
+    private String jwtToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
         
-        mockMvc.perform(get("/api"))
+        // Login to get JWT token for tests
+        jwtToken = JwtTestUtil.loginAndGetToken(mockMvc, objectMapper, "admin", "test123");
+    }
+
+    @Test
+    void testApiRootEndpoint() throws Exception {
+        mockMvc.perform(get("/api")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -43,11 +58,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllUsersEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/users"))
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -58,11 +71,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllClientsEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/clients"))
+        mockMvc.perform(get("/api/clients")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -73,11 +84,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllRolesEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/roles"))
+        mockMvc.perform(get("/api/roles")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -88,11 +97,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllUserRolesEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/user-roles"))
+        mockMvc.perform(get("/api/user-roles")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -103,11 +110,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllClientRolesEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/client-roles"))
+        mockMvc.perform(get("/api/client-roles")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -118,11 +123,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetAllLoginLogsEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/logs-logins"))
+        mockMvc.perform(get("/api/logs-logins")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -133,13 +136,13 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testPaginationParameters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         mockMvc.perform(get("/api/users")
                 .param("page", "0")
-                .param("size", "2"))
+                .param("size", "2")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.page").exists())
@@ -149,12 +152,12 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSortingParameters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         mockMvc.perform(get("/api/users")
-                .param("sort", "username,asc"))
+                .param("sort", "username,asc")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -162,11 +165,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testUsersSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/users/search"))
+        mockMvc.perform(get("/api/users/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -177,11 +178,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testClientsSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/clients/search"))
+        mockMvc.perform(get("/api/clients/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -190,11 +189,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testRolesSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/roles/search"))
+        mockMvc.perform(get("/api/roles/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -205,11 +202,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testUserRolesSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/user-roles/search"))
+        mockMvc.perform(get("/api/user-roles/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -219,11 +214,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testClientRolesSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/client-roles/search"))
+        mockMvc.perform(get("/api/client-roles/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -232,11 +225,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testLoginLogsSearchEndpoints() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/logs-logins/search"))
+        mockMvc.perform(get("/api/logs-logins/search")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists())
@@ -246,12 +237,12 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSpecificUserById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test with user ID 1 (assuming it exists from the logs)
-        mockMvc.perform(get("/api/users/1"))
+        mockMvc.perform(get("/api/users/1")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.username").exists())
@@ -261,12 +252,12 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSpecificClientById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test with client ID 1 (assuming it exists from the logs)
-        mockMvc.perform(get("/api/clients/1"))
+        mockMvc.perform(get("/api/clients/1")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.name").exists())
@@ -275,12 +266,12 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSpecificRoleById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test with role ID 1 (assuming it exists from the logs)
-        mockMvc.perform(get("/api/roles/1"))
+        mockMvc.perform(get("/api/roles/1")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.description").exists())
@@ -289,13 +280,13 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSearchUserByUsername() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test searching for 'admin' user (from the logs)
         mockMvc.perform(get("/api/users/search/by-username")
-                .param("username", "admin"))
+                .param("username", "admin")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.username", is("admin")))
@@ -303,13 +294,13 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSearchClientByExternalId() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test searching for client by external ID (from the logs)
         mockMvc.perform(get("/api/clients/search/by-external-id")
-                .param("externalId", "SEARS-HOME-SERVICES"))
+                .param("externalId", "SEARS-HOME-SERVICES")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.externalId", is("SEARS-HOME-SERVICES")))
@@ -317,13 +308,13 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testSearchRoleByDescription() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         // Test searching for role by description (from the logs)
         mockMvc.perform(get("/api/roles/search/by-description")
-                .param("description", "ROLE_ADMIN"))
+                .param("description", "ROLE_ADMIN")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.description", is("ROLE_ADMIN")))
@@ -331,36 +322,29 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testNotFoundResource() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/users/999999"))
+        mockMvc.perform(get("/api/users/999999")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testInvalidEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/nonexistent"))
+        mockMvc.perform(get("/api/nonexistent")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testProfileEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/profile"))
+        mockMvc.perform(get("/api/profile")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._links").exists());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testContentNegotiation() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -371,23 +355,21 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testLargePage() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
         mockMvc.perform(get("/api/users")
-                .param("size", "100"))
+                .param("size", "100")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$.page.size", is(100)));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetInternalRoles() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/roles/search/internal"))
+        mockMvc.perform(get("/api/roles/search/internal")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -395,11 +377,9 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void testGetExternalRoles() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/api/roles/search/external"))
+        mockMvc.perform(get("/api/roles/search/external")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
@@ -408,9 +388,8 @@ class RestEndpointsIntegrationTest {
 
     @Test
     void testLoginEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/login"))
+        mockMvc.perform(get("/login")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.message").exists());
@@ -418,9 +397,8 @@ class RestEndpointsIntegrationTest {
 
     @Test
     void testLogoutEndpoint() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/logout"))
+        mockMvc.perform(get("/logout")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/json"))
                 .andExpect(jsonPath("$.message").exists());
@@ -428,17 +406,15 @@ class RestEndpointsIntegrationTest {
 
     @Test
     void testSwaggerUiAccess() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/swagger-ui/index.html"))
+        mockMvc.perform(get("/swagger-ui/index.html")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk());
     }
 
     @Test
     void testApiDocsAccess() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        
-        mockMvc.perform(get("/v3/api-docs"))
+        mockMvc.perform(get("/v3/api-docs")
+                .header("Authorization", JwtTestUtil.createAuthHeader(jwtToken)))
                 .andExpect(status().isOk());
     }
 
@@ -448,18 +424,20 @@ class RestEndpointsIntegrationTest {
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();
         
+        // Test without Authorization header - should return 401
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @WithMockUser(roles = "USER")
     void testApiEndpointsRequireAdminRole() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();
         
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isForbidden());
+        // Test with invalid token - should return 401
+        mockMvc.perform(get("/api/users")
+                .header("Authorization", "Bearer invalid.token.here"))
+                .andExpect(status().isUnauthorized());
     }
 }

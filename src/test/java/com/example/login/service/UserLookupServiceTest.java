@@ -1,7 +1,11 @@
 package com.example.login.service;
 
 import com.example.login.entity.User;
+import com.example.login.entity.UserRole;
+import com.example.login.entity.ClientRole;
+import com.example.login.entity.Role;
 import com.example.login.repository.UserRepository;
+import com.example.login.repository.UserRoleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +27,9 @@ class UserLookupServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private UserRoleRepository userRoleRepository;
 
     @Mock
     private PasswordService passwordService;
@@ -150,5 +158,108 @@ class UserLookupServiceTest {
         // Then
         assertThat(result).isFalse();
         verify(passwordService).isValid(testUser.getPasswordType(), testUser.getPasswordSalt(), "wrongpassword", testUser.getPasswordHash());
+    }
+
+    @Test
+    void getUserRoles_WhenUserHasRoles_ShouldReturnRoles() {
+        // Given
+        Role adminRole = new Role("ROLE_ADMIN", true);
+        Role userRole = new Role("ROLE_USER", true);
+        
+        ClientRole clientRole1 = new ClientRole();
+        clientRole1.setRole(adminRole);
+        
+        ClientRole clientRole2 = new ClientRole();
+        clientRole2.setRole(userRole);
+        
+        UserRole userRole1 = new UserRole();
+        userRole1.setIdUser(1L);
+        userRole1.setIdClient(1L);
+        userRole1.setIdRole(1L);
+        userRole1.setClientRole(clientRole1);
+        
+        UserRole userRole2 = new UserRole();
+        userRole2.setIdUser(1L);
+        userRole2.setIdClient(1L);
+        userRole2.setIdRole(2L);
+        userRole2.setClientRole(clientRole2);
+        
+        when(userRoleRepository.findByIdUser(1L)).thenReturn(List.of(userRole1, userRole2));
+
+        // When
+        List<String> roles = userLookupService.getUserRoles(testUser);
+
+        // Then
+        assertThat(roles).containsExactlyInAnyOrder("ROLE_ADMIN", "ROLE_USER");
+        verify(userRoleRepository).findByIdUser(1L);
+    }
+
+    @Test
+    void getUserRoles_WhenUserHasNoRoles_ShouldReturnEmptyList() {
+        // Given
+        when(userRoleRepository.findByIdUser(1L)).thenReturn(List.of());
+
+        // When
+        List<String> roles = userLookupService.getUserRoles(testUser);
+
+        // Then
+        assertThat(roles).isEmpty();
+        verify(userRoleRepository).findByIdUser(1L);
+    }
+
+    @Test
+    void getUserRoles_WhenUserIsNull_ShouldReturnEmptyList() {
+        // When
+        List<String> roles = userLookupService.getUserRoles(null);
+
+        // Then
+        assertThat(roles).isEmpty();
+        verify(userRoleRepository, never()).findByIdUser(any());
+    }
+
+    @Test
+    void getUserClientIds_WhenUserHasClients_ShouldReturnClientIds() {
+        // Given
+        UserRole userRole1 = new UserRole();
+        userRole1.setIdUser(1L);
+        userRole1.setIdClient(1L);
+        userRole1.setIdRole(1L);
+        
+        UserRole userRole2 = new UserRole();
+        userRole2.setIdUser(1L);
+        userRole2.setIdClient(2L);
+        userRole2.setIdRole(2L);
+        
+        when(userRoleRepository.findByIdUser(1L)).thenReturn(List.of(userRole1, userRole2));
+
+        // When
+        List<Long> clientIds = userLookupService.getUserClientIds(testUser);
+
+        // Then
+        assertThat(clientIds).containsExactlyInAnyOrder(1L, 2L);
+        verify(userRoleRepository).findByIdUser(1L);
+    }
+
+    @Test
+    void getUserClientIds_WhenUserHasNoClients_ShouldReturnEmptyList() {
+        // Given
+        when(userRoleRepository.findByIdUser(1L)).thenReturn(List.of());
+
+        // When
+        List<Long> clientIds = userLookupService.getUserClientIds(testUser);
+
+        // Then
+        assertThat(clientIds).isEmpty();
+        verify(userRoleRepository).findByIdUser(1L);
+    }
+
+    @Test
+    void getUserClientIds_WhenUserIsNull_ShouldReturnEmptyList() {
+        // When
+        List<Long> clientIds = userLookupService.getUserClientIds(null);
+
+        // Then
+        assertThat(clientIds).isEmpty();
+        verify(userRoleRepository, never()).findByIdUser(any());
     }
 }

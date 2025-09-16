@@ -4,13 +4,16 @@ import com.example.login.dto.LoginRequest;
 import com.example.login.dto.LoginResponse;
 import com.example.login.entity.User;
 import com.example.login.exception.AuthenticationException;
+import com.example.login.service.JwtService;
 import com.example.login.service.UserLookupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,6 +33,7 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserLookupService userLookupService;
+    private final JwtService jwtService;
 
     @GetMapping("/login")
     @Operation(summary = "Get login information", description = "Returns information about how to authenticate with the API")
@@ -74,11 +79,18 @@ public class AuthController {
             
             User user = userOpt.get();
             
+            // Get user roles and client IDs for JWT
+            List<String> roles = userLookupService.getUserRoles(user);
+            List<Long> clientIds = userLookupService.getUserClientIds(user);
+            
+            // Generate JWT token
+            String jwtToken = jwtService.generateToken(user, roles, clientIds);
+            
             // Update last login timestamp
             userLookupService.updateLastLogin(user);
             
-            log.info("Login successful for user: {}", user.getUsername());
-            return ResponseEntity.ok(LoginResponse.success(user));
+            log.info("Login successful for user: {} with roles: {}", user.getUsername(), roles);
+            return ResponseEntity.ok(LoginResponse.success(user, jwtToken));
             
         } catch (Exception e) {
             log.error("Error during login for: {}", loginRequest.getUsernameOrEmail(), e);
@@ -88,8 +100,22 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Perform logout", description = "Logs out the current user")
-    public ResponseEntity<Map<String, String>> logout() {
+    @Operation(summary = "Perform logout", description = "Logs out the current user and invalidates JWT token")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Logout successful",
+            content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token")
+    })
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String jwt = authHeader.substring(7);
+            jwtService.blacklistToken(jwt);
+            log.info("JWT token invalidated for logout");
+        }
+        
         return ResponseEntity.ok(Map.of(
             "message", "Logout successful",
             "status", "logged_out"
@@ -107,9 +133,11 @@ public class AuthController {
 
     @GetMapping("/user/{username}")
     @Operation(summary = "Get user by username", description = "Retrieves user information by username")
+    @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found",
             content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
@@ -120,9 +148,11 @@ public class AuthController {
 
     @GetMapping("/user/email/{email}")
     @Operation(summary = "Get user by email", description = "Retrieves user information by email")
+    @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found",
             content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
@@ -133,9 +163,11 @@ public class AuthController {
 
     @GetMapping("/user/id/{id}")
     @Operation(summary = "Get user by ID", description = "Retrieves user information by ID")
+    @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User found",
             content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
@@ -146,9 +178,11 @@ public class AuthController {
 
     @PostMapping("/validate-password")
     @Operation(summary = "Validate password", description = "Validates a password against a user's stored credentials")
+    @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Password validation result",
             content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing token"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<Map<String, Object>> validatePassword(

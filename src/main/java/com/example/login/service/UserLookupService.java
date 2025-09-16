@@ -1,14 +1,18 @@
 package com.example.login.service;
 
 import com.example.login.entity.User;
+import com.example.login.entity.UserRole;
 import com.example.login.repository.UserRepository;
+import com.example.login.repository.UserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service for user lookup and authentication operations.
@@ -20,6 +24,7 @@ import java.util.Optional;
 public class UserLookupService {
 
     private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
     private final PasswordService passwordService;
 
     /**
@@ -250,5 +255,49 @@ public class UserLookupService {
             password,
             user.getPasswordHash()
         );
+    }
+
+    /**
+     * Get user roles for JWT token generation.
+     * 
+     * @param user the user to get roles for
+     * @return list of role descriptions
+     */
+    @Transactional(readOnly = true)
+    public List<String> getUserRoles(User user) {
+        if (user == null || user.getId() == null) {
+            log.warn("Attempted to get roles for null user or user without ID");
+            return List.of();
+        }
+        
+        log.debug("Getting roles for user: {}", user.getUsername());
+        List<UserRole> userRoles = userRoleRepository.findByIdUser(user.getId());
+        
+        return userRoles.stream()
+                .map(userRole -> userRole.getClientRole().getRole().getDescription())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get client IDs for JWT token generation.
+     * 
+     * @param user the user to get client IDs for
+     * @return list of client IDs
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getUserClientIds(User user) {
+        if (user == null || user.getId() == null) {
+            log.warn("Attempted to get client IDs for null user or user without ID");
+            return List.of();
+        }
+        
+        log.debug("Getting client IDs for user: {}", user.getUsername());
+        List<UserRole> userRoles = userRoleRepository.findByIdUser(user.getId());
+        
+        return userRoles.stream()
+                .map(UserRole::getIdClient)
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
