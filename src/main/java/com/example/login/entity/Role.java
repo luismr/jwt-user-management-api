@@ -46,6 +46,7 @@ public class Role {
     // Custom constructors for convenience
     public Role(String description) {
         this.description = description;
+        this.internal = false;
     }
 
     public Role(String description, Boolean internal) {
