@@ -3,6 +3,7 @@ package com.example.login.config;
 import com.example.login.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -38,6 +40,10 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
                 .requestMatchers("/webjars/**").permitAll()
+                // User creation endpoint requires ADMIN role
+                .requestMatchers("/api/users/create").hasRole("ADMIN")
+                // Password change endpoint requires authentication
+                .requestMatchers("/change-password").authenticated()
                 // API endpoints require JWT authentication with appropriate roles
                 .requestMatchers("/api/**").authenticated()
                 // All other requests require authentication
