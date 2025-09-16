@@ -32,38 +32,38 @@ JOIN roles r ON r.description IN ('ROLE_ADMIN','ROLE_USER')
 WHERE c.external_id = 'SEARS-HOME-SERVICES'
 ON DUPLICATE KEY UPDATE date_updated = CURRENT_TIMESTAMP;
 
--- Users (ACTIVE; placeholder bcrypt hashes; unique usernames)
+-- Users (ACTIVE; real hashes for password 'test123'; unique usernames)
 -- NOTE: To avoid collisions and match intent, using 'sp1user' and 'toddsuser'.
 -- Users for SEARS HOME SERVICES
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'admin', '$2y$10$wJalrXUtnFEMI/K7MDENGuEv6Q9r1tGzQ6Q0eQFRCGDpa2BkLomqG', 'adminSALT', 'BCRYPT', 'Administrator', 'admin@searshomeservices.com', 'ACTIVE', NOW()
+SELECT c.id, 'admin', '$2a$10$VVb80cqWj.VEJ/zV1BXoKO.xYSbryLc8XIytV04C98NTqpCBsi.Vq', '$2a$10$VVb80cqWj.VEJ/zV1BXoKO', 'BCRYPT', 'Administrator', 'admin@searshomeservices.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'SEARS HOME SERVICES'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'user', '$2y$10$1a2b3c4d5e6f7g8h9i0jklmnopqrstuvwxYzABCD1234567890abcd', 'userSALT', 'BCRYPT', 'User', 'user@searshomeservices.com', 'ACTIVE', NOW()
+SELECT c.id, 'user', '$2a$10$VVb80cqWj.VEJ/zV1BXoKO.xYSbryLc8XIytV04C98NTqpCBsi.Vq', '$2a$10$VVb80cqWj.VEJ/zV1BXoKO', 'BCRYPT', 'User', 'user@searshomeservices.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'SEARS HOME SERVICES'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 
 -- Users for SP1
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'sp1admin', '4642e6e7e3a0655e768f8b1a79cd13e3', 'sp1adminSALT', 'MD5', 'SP1 Administrator', 'admin@sp1.com', 'ACTIVE', NOW()
+SELECT c.id, 'sp1admin', 'a7a372980bee87cba4896863c7d65690', 'b741c9d3d3c18125e3ddd5ca0e0125c5', 'MD5', 'SP1 Administrator', 'admin@sp1.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'SP1'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'sp1user', '8e8b2a1d7b6c3e5a4c1e2f7d8b4a3c2d', 'sp1userSALT', 'MD5', 'SP1 User', 'user@sp1.com', 'ACTIVE', NOW()
+SELECT c.id, 'sp1user', 'a7a372980bee87cba4896863c7d65690', 'b741c9d3d3c18125e3ddd5ca0e0125c5', 'MD5', 'SP1 User', 'user@sp1.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'SP1'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 
 -- Users for TODDS
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'toddsadmin', 'b0e1b5e5b6a1c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8', 'toddsadminSALT', 'SHA256', 'Todds Administrator', 'admin@todds.com', 'ACTIVE', NOW()
+SELECT c.id, 'toddsadmin', '59ec6013960bec186b6a50e22657ae6483bbccfcdf01b5826117b816609b695f', 'c0ba5a991e160a42ac9c81222f8640ae', 'SHA256', 'Todds Administrator', 'admin@todds.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'TODDS'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 
 INSERT INTO users (id_client, username, password_hash, password_salt, password_type, name, email, status, date_last_login)
-SELECT c.id, 'toddsuser', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2', 'toddsuserSALT', 'SHA256', 'Todds User', 'user@todds.com', 'ACTIVE', NOW()
+SELECT c.id, 'toddsuser', '59ec6013960bec186b6a50e22657ae6483bbccfcdf01b5826117b816609b695f', 'c0ba5a991e160a42ac9c81222f8640ae', 'SHA256', 'Todds User', 'user@todds.com', 'ACTIVE', NOW()
 FROM clients c WHERE c.name = 'TODDS'
 ON DUPLICATE KEY UPDATE email = VALUES(email), status = VALUES(status);
 

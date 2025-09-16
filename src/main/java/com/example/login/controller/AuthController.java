@@ -1,19 +1,34 @@
 package com.example.login.controller;
 
+import com.example.login.dto.LoginRequest;
+import com.example.login.dto.LoginResponse;
+import com.example.login.entity.User;
+import com.example.login.exception.AuthenticationException;
+import com.example.login.service.UserLookupService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping
 @Tag(name = "Authentication", description = "Authentication and logout endpoints")
+@RequiredArgsConstructor
+@Slf4j
 public class AuthController {
+
+    private final UserLookupService userLookupService;
 
     @GetMapping("/login")
     @Operation(summary = "Get login information", description = "Returns information about how to authenticate with the API")
@@ -25,12 +40,51 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Perform login", description = "Authenticates a user and returns login status")
-    public ResponseEntity<Map<String, String>> loginPost() {
-        return ResponseEntity.ok(Map.of(
-            "message", "Login successful",
-            "status", "authenticated"
-        ));
+    @Operation(summary = "Perform login", description = "Authenticates a user with username/email and password")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login successful",
+            content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request data",
+            content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "401", description = "Authentication failed",
+            content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    })
+    public ResponseEntity<LoginResponse> loginPost(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            log.info("Login attempt for: {}", loginRequest.getUsernameOrEmail());
+            
+            // Try to authenticate by username first, then by email
+            Optional<User> userOpt = userLookupService.authenticateByUsername(
+                loginRequest.getUsernameOrEmail(), 
+                loginRequest.getPassword()
+            );
+            
+            if (userOpt.isEmpty()) {
+                userOpt = userLookupService.authenticateByEmail(
+                    loginRequest.getUsernameOrEmail(), 
+                    loginRequest.getPassword()
+                );
+            }
+            
+            if (userOpt.isEmpty()) {
+                log.warn("Authentication failed for: {}", loginRequest.getUsernameOrEmail());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(LoginResponse.failure("Invalid username/email or password"));
+            }
+            
+            User user = userOpt.get();
+            
+            // Update last login timestamp
+            userLookupService.updateLastLogin(user);
+            
+            log.info("Login successful for user: {}", user.getUsername());
+            return ResponseEntity.ok(LoginResponse.success(user));
+            
+        } catch (Exception e) {
+            log.error("Error during login for: {}", loginRequest.getUsernameOrEmail(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(LoginResponse.failure("An error occurred during authentication"));
+        }
     }
 
     @PostMapping("/logout")
@@ -48,6 +102,76 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
             "message", "Logout successful",
             "status", "logged_out"
+        ));
+    }
+
+    @GetMapping("/user/{username}")
+    @Operation(summary = "Get user by username", description = "Retrieves user information by username")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User found",
+            content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+        Optional<User> userOpt = userLookupService.findByUsername(username);
+        return userOpt.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/user/email/{email}")
+    @Operation(summary = "Get user by email", description = "Retrieves user information by email")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User found",
+            content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        Optional<User> userOpt = userLookupService.findByEmail(email);
+        return userOpt.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/user/id/{id}")
+    @Operation(summary = "Get user by ID", description = "Retrieves user information by ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User found",
+            content = @Content(schema = @Schema(implementation = User.class))),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+        Optional<User> userOpt = userLookupService.findById(id);
+        return userOpt.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/validate-password")
+    @Operation(summary = "Validate password", description = "Validates a password against a user's stored credentials")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password validation result",
+            content = @Content(schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<Map<String, Object>> validatePassword(
+            @RequestParam String usernameOrEmail,
+            @RequestParam String password) {
+        
+        // Find user by username or email
+        Optional<User> userOpt = userLookupService.findByUsername(usernameOrEmail);
+        if (userOpt.isEmpty()) {
+            userOpt = userLookupService.findByEmail(usernameOrEmail);
+        }
+        
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        User user = userOpt.get();
+        boolean isValid = userLookupService.validatePassword(user, password);
+        
+        return ResponseEntity.ok(Map.of(
+            "valid", isValid,
+            "username", user.getUsername(),
+            "message", isValid ? "Password is valid" : "Password is invalid"
         ));
     }
 }

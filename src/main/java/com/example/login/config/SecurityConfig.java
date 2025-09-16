@@ -35,15 +35,8 @@ public class SecurityConfig {
             .httpBasic(httpBasic -> httpBasic
                 .realmName("Login Application")
             )
-            .formLogin(formLogin -> formLogin
-                .loginPage("/login")
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .permitAll()
-            );
+            .formLogin(AbstractHttpConfigurer::disable)
+            .logout(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
