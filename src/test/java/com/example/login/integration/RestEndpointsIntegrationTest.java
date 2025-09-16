@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -22,6 +25,7 @@ class RestEndpointsIntegrationTest {
     private WebApplicationContext webApplicationContext;
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testApiRootEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -39,6 +43,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllUsersEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -53,6 +58,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllClientsEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -67,6 +73,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllRolesEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -81,6 +88,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllUserRolesEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -95,6 +103,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllClientRolesEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -109,6 +118,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetAllLoginLogsEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -123,6 +133,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testPaginationParameters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -138,6 +149,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSortingParameters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -150,6 +162,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUsersSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -164,6 +177,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testClientsSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -176,6 +190,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testRolesSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -190,6 +205,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testUserRolesSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -203,6 +219,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testClientRolesSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -215,6 +232,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testLoginLogsSearchEndpoints() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -228,6 +246,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSpecificUserById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -242,6 +261,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSpecificClientById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -255,6 +275,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSpecificRoleById() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -268,6 +289,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSearchUserByUsername() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -281,6 +303,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSearchClientByExternalId() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -294,6 +317,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testSearchRoleByDescription() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -307,6 +331,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testNotFoundResource() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -315,6 +340,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testInvalidEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -323,6 +349,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testProfileEndpoint() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -333,6 +360,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testContentNegotiation() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -343,6 +371,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testLargePage() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -354,6 +383,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetInternalRoles() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -365,6 +395,7 @@ class RestEndpointsIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testGetExternalRoles() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         
@@ -373,5 +404,62 @@ class RestEndpointsIntegrationTest {
                 .andExpect(content().contentType("application/hal+json"))
                 .andExpect(jsonPath("$._embedded").exists())
                 .andExpect(jsonPath("$._embedded.roles").isArray());
+    }
+
+    @Test
+    void testLoginEndpoint() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        
+        mockMvc.perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testLogoutEndpoint() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        
+        mockMvc.perform(get("/logout"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testSwaggerUiAccess() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        
+        mockMvc.perform(get("/swagger-ui/index.html"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testApiDocsAccess() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testApiEndpointsRequireAuthentication() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
+        
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void testApiEndpointsRequireAdminRole() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
+        
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isForbidden());
     }
 }
