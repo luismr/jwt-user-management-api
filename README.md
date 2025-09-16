@@ -1,16 +1,22 @@
 # Spring Boot Login Application with Spring Data REST
 
-A Spring Boot application that provides RESTful APIs for user management using Spring Data REST and MySQL database connectivity.
+A comprehensive Spring Boot application that provides RESTful APIs for user management, authentication, and client organization using Spring Data REST, MySQL database connectivity, and advanced password hashing capabilities.
 
 ## Features
 
 - **Spring Boot 3.2.0** with Java 17
 - **Spring Data JPA** for database operations
 - **Spring Data REST** for automatic REST API generation
-- **MySQL Database** connectivity
-- **User Management** with roles and permissions
-- **Validation** using Bean Validation
-- **Automatic API Documentation** via Spring Data REST
+- **MySQL Database** connectivity with Flyway migrations
+- **Advanced Password Hashing** with multiple algorithms (BCrypt, SHA256, SHA512, MD5)
+- **User Management** with roles, permissions, and client associations
+- **Client Organization Management** with role-based access control
+- **Authentication Logging** and audit trails
+- **Comprehensive Validation** using Bean Validation
+- **Interactive API Documentation** via SpringDoc OpenAPI 3 (Swagger)
+- **YAML Configuration** for better maintainability
+- **Comprehensive Testing** with unit and integration tests
+- **Code Coverage** reporting with JaCoCo
 
 ## Prerequisites
 
@@ -22,31 +28,52 @@ A Spring Boot application that provides RESTful APIs for user management using S
 ## Database Setup
 
 1. Ensure MySQL is running on localhost:3306
-2. Create a database (optional - application can create tables automatically):
+2. Create the database:
    ```sql
-   CREATE DATABASE login_app;
+   CREATE DATABASE b2bapp;
    ```
-3. The application is configured to connect with:
-   - **URL**: `jdbc:mysql://localhost:3306/?allowPublicKeyRetrieval=true`
+3. The application uses Flyway for database migrations and is configured to connect with:
+   - **URL**: `jdbc:mysql://localhost:3306/b2bapp?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC`
    - **Username**: `root`
    - **Password**: `test123`
 
 ## Configuration
 
-The application is configured in `src/main/resources/application.properties`:
+The application is configured using YAML format in `src/main/resources/application.yml`:
 
-```properties
+```yaml
 # Database Configuration
-spring.datasource.url=jdbc:mysql://localhost:3306/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
-spring.datasource.username=root
-spring.datasource.password=test123
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/b2bapp?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: root
+    password: test123
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
-# JPA Configuration
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
-# Spring Data REST Configuration
-spring.data.rest.base-path=/api
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+
+  # Spring Data REST Configuration
+  data:
+    rest:
+      base-path: /api
+      default-page-size: 20
+      max-page-size: 100
 ```
 
 ## Running the Application
@@ -57,6 +84,47 @@ spring.data.rest.base-path=/api
    mvn spring-boot:run
    ```
 3. The application will start on `http://localhost:8080`
+
+## Password Hashing System
+
+The application includes a comprehensive password hashing system with support for multiple algorithms:
+
+### Supported Algorithms
+
+- **BCRYPT** - Recommended for production (uses Spring Security's BCrypt)
+- **SHA256** - Good for general use with external salt
+- **SHA512** - Higher security with external salt
+- **MD5** - Legacy support (not recommended for production)
+
+### Password Service
+
+The `PasswordService` provides high-level password operations:
+
+```java
+@Autowired
+private PasswordService passwordService;
+
+// Generate hash with salt
+var result = passwordService.generateHash("SHA256", "mypassword");
+String salt = result.getSalt();
+String hash = result.getHash();
+
+// Validate password
+boolean isValid = passwordService.isValid("SHA256", salt, "mypassword", hash);
+
+// Check password security
+boolean isSecure = passwordService.isPasswordSecure("MySecure123!");
+```
+
+### Password Security Requirements
+
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
+- At least one special character
+
+For detailed usage examples, see [PASSWORD_FUNCTIONALITY.md](PASSWORD_FUNCTIONALITY.md).
 
 ## API Endpoints
 
@@ -79,6 +147,14 @@ Spring Data REST automatically generates RESTful endpoints for your entities. Ba
 - **GET** `/api/users/search/by-first-name?firstName={name}` - Find users by first name
 - **GET** `/api/users/search/by-last-name?lastName={name}` - Find users by last name
 - **GET** `/api/users/search/search-by-name?name={pattern}` - Search users by name pattern
+
+### Clients API
+
+- **GET** `/api/clients` - Get all clients
+- **POST** `/api/clients` - Create a new client
+- **GET** `/api/clients/{id}` - Get client by ID
+- **PUT** `/api/clients/{id}` - Update client
+- **DELETE** `/api/clients/{id}` - Delete client
 
 ### Roles API
 
@@ -104,9 +180,21 @@ Spring Data REST automatically generates RESTful endpoints for your entities. Ba
 - **GET** `/api/user-roles/search/by-user-id?userId={id}` - Find roles by user ID
 - **GET** `/api/user-roles/search/by-role-name?roleName={name}` - Find users with specific role
 
+### Client Roles API
+
+- **GET** `/api/client-roles` - Get all client role assignments
+- **POST** `/api/client-roles` - Create client role assignment
+- **GET** `/api/client-roles/{id}` - Get client role by ID
+
+### Login Logs API
+
+- **GET** `/api/logs-logins` - Get all login logs
+- **POST** `/api/logs-logins` - Create login log entry
+- **GET** `/api/logs-logins/{id}` - Get login log by ID
+
 ## Example API Usage
 
-### Create a User
+### Create a User with Password Hashing
 
 ```bash
 curl -X POST http://localhost:8080/api/users \
@@ -114,9 +202,24 @@ curl -X POST http://localhost:8080/api/users \
   -d '{
     "username": "johndoe",
     "email": "john@example.com",
-    "password": "password123",
+    "passwordHash": "hashed_password_here",
+    "passwordSalt": "salt_here",
+    "passwordType": "SHA256",
     "firstName": "John",
-    "lastName": "Doe"
+    "lastName": "Doe",
+    "enabled": true
+  }'
+```
+
+### Create a Client
+
+```bash
+curl -X POST http://localhost:8080/api/clients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Acme Corporation",
+    "description": "A sample client organization",
+    "enabled": true
   }'
 ```
 
@@ -143,6 +246,22 @@ curl http://localhost:8080/api/users
 curl "http://localhost:8080/api/users/search/by-username?username=johndoe"
 ```
 
+### Password Hashing Example (Java)
+
+```java
+@Autowired
+private PasswordService passwordService;
+
+// Generate password hash
+var result = passwordService.generateHash("SHA256", "MySecure123!");
+System.out.println("Salt: " + result.getSalt());
+System.out.println("Hash: " + result.getHash());
+
+// Validate password
+boolean isValid = passwordService.isValid("SHA256", result.getSalt(), "MySecure123!", result.getHash());
+System.out.println("Password valid: " + isValid);
+```
+
 ## API Discovery
 
 Spring Data REST provides automatic API discovery:
@@ -152,12 +271,21 @@ Spring Data REST provides automatic API discovery:
 
 ## Database Schema
 
-The application creates the following tables:
+The application uses Flyway migrations to create and manage the following tables:
 
-- `users` - User information
+- `users` - User information with password hashing fields
+- `clients` - Client organizations
 - `roles` - Role definitions
 - `user_roles` - User role assignments
-- `user_role_mapping` - Many-to-many mapping between user_roles and roles
+- `client_roles` - Client role assignments
+- `logs_login` - Authentication and login audit logs
+
+### Key Features
+
+- **Password Security**: Users have `password_hash`, `password_salt`, and `password_type` fields
+- **Client Association**: Users belong to client organizations
+- **Audit Logging**: Login attempts are tracked in `logs_login` table
+- **Role Management**: Flexible role assignment system for users and clients
 
 ## Development
 
@@ -168,17 +296,45 @@ src/
 ├── main/
 │   ├── java/com/example/login/
 │   │   ├── LoginApplication.java       # Main application class
+│   │   ├── config/                     # Configuration classes
+│   │   │   └── JacksonConfig.java
 │   │   ├── entity/                     # JPA entities
 │   │   │   ├── User.java
+│   │   │   ├── Client.java
 │   │   │   ├── Role.java
-│   │   │   └── UserRole.java
-│   │   └── repository/                 # Spring Data repositories
-│   │       ├── UserRepository.java
-│   │       ├── RoleRepository.java
-│   │       └── UserRoleRepository.java
+│   │   │   ├── UserRole.java
+│   │   │   ├── ClientRole.java
+│   │   │   └── LogsLogin.java
+│   │   ├── repository/                 # Spring Data repositories
+│   │   │   ├── UserRepository.java
+│   │   │   ├── ClientRepository.java
+│   │   │   ├── RoleRepository.java
+│   │   │   ├── UserRoleRepository.java
+│   │   │   ├── ClientRoleRepository.java
+│   │   │   └── LogsLoginRepository.java
+│   │   ├── service/                    # Business logic services
+│   │   │   └── PasswordService.java
+│   │   ├── util/                       # Utility classes
+│   │   │   └── PasswordHashUtil.java
+│   │   └── example/                    # Example implementations
+│   │       └── PasswordExample.java
 │   └── resources/
-│       └── application.properties      # Application configuration
+│       ├── application.yml             # Application configuration (YAML)
+│       └── db/migration/               # Flyway database migrations
+│           ├── V1__init.sql
+│           └── V2__initial-data.sql
 └── test/                              # Test classes
+    ├── java/com/example/login/
+    │   ├── entity/                     # Entity unit tests
+    │   ├── repository/                 # Repository unit tests
+    │   ├── service/                    # Service unit tests
+    │   ├── util/                       # Utility unit tests
+    │   ├── integration/                # Integration tests
+    │   └── LoginApplicationTest.java
+    └── resources/                      # Test configuration files
+        ├── application-test.properties
+        ├── application-integration.properties
+        └── application-integration-env.properties
 ```
 
 ### Adding New Entities
@@ -556,26 +712,49 @@ Once the application is running, you can access the API documentation at:
 
 ### Configuration
 
-All OpenAPI settings are configured in `application.properties`:
+All OpenAPI settings are configured in `application.yml`:
 
-```properties
-# OpenAPI Configuration
-springdoc.api-docs.path=/api-docs
-springdoc.swagger-ui.path=/swagger-ui.html
-springdoc.swagger-ui.operationsSorter=method
-springdoc.swagger-ui.tagsSorter=alpha
-springdoc.swagger-ui.tryItOutEnabled=true
-springdoc.packages-to-scan=com.example.login
-springdoc.paths-to-match=/api/**
-
-# OpenAPI Info Configuration
-springdoc.info.title=Login System API
-springdoc.info.description=Spring Boot REST API for user authentication and management system with Spring Data REST
-springdoc.info.version=1.0.0
-springdoc.info.contact.name=API Support
-springdoc.info.contact.email=support@example.com
-springdoc.info.license.name=MIT License
-springdoc.info.license.url=https://opensource.org/licenses/MIT
+```yaml
+spring:
+  doc:
+    api-docs:
+      path: /api-docs
+      info:
+        title: Login System API
+        description: Spring Boot REST API for user authentication and management system with Spring Data REST. This API provides comprehensive user management, client organization handling, role-based access control, and authentication logging capabilities.
+        version: 1.0.0
+        contact:
+          name: API Support
+          email: support@example.com
+          url: https://example.com/support
+        license:
+          name: MIT License
+          url: https://opensource.org/licenses/MIT
+      servers:
+        - url: http://localhost:8080
+          description: Development server
+        - url: https://api.example.com
+          description: Production server
+      tags:
+        - name: Users
+          description: User management operations including authentication, profile management, and user queries
+        - name: Clients
+          description: Client organization management operations
+        - name: Roles
+          description: Role and permission management operations
+        - name: Client Roles
+          description: Client-role association management
+        - name: User Roles
+          description: User-role assignment management
+        - name: Login Logs
+          description: Authentication audit and login tracking operations
+    swagger-ui:
+      path: /swagger-ui.html
+      operations-sorter: method
+      tags-sorter: alpha
+      try-it-out-enabled: true
+    packages-to-scan: com.example.login
+    paths-to-match: /api/**
 ```
 
 ### Available Endpoints
@@ -591,9 +770,15 @@ The API automatically documents all Spring Data REST endpoints:
 
 ## Next Steps
 
-- Add Spring Security for authentication
-- Implement password encryption
+- Add Spring Security for authentication and authorization
+- Implement JWT token-based authentication
 - Add custom controllers for complex business logic
 - Configure CORS for frontend integration
+- Add rate limiting and security headers
+- Implement password reset functionality
+- Add email notifications for user events
 - Add performance testing with JMeter
 - Integrate coverage reports with CI/CD pipeline
+- Add Docker containerization
+- Implement API versioning
+- Add comprehensive logging and monitoring
