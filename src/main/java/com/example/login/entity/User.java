@@ -93,7 +93,25 @@ public class User {
 
     // Enums
     public enum PasswordType {
-        BCRYPT, SHA256, MD5, SHA512
+        BCRYPT, SHA256, MD5, SHA512;
+        
+        /**
+         * Get PasswordType from string (case-insensitive)
+         * @param typeString the string representation of the password type
+         * @return the corresponding PasswordType
+         * @throws IllegalArgumentException if the string doesn't match any known type
+         */
+        public static PasswordType fromString(String typeString) {
+            if (typeString == null) {
+                throw new IllegalArgumentException("Password type cannot be null");
+            }
+            try {
+                return PasswordType.valueOf(typeString.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Unknown password type: " + typeString + 
+                    ". Supported types: " + java.util.Arrays.toString(PasswordType.values()));
+            }
+        }
     }
 
     public enum UserStatus {
